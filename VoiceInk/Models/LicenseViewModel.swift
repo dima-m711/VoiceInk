@@ -9,7 +9,13 @@ class LicenseViewModel: ObservableObject {
         case licensed
     }
 
-    @Published private(set) var licenseState: LicenseState = .trial(daysRemaining: 7)  // Default to trial
+    #if DEBUG
+    private static let bypassLicenseForTesting = true
+    #else
+    private static let bypassLicenseForTesting = false
+    #endif
+
+    @Published private(set) var licenseState: LicenseState = .trial(daysRemaining: 7)
     @Published var licenseKey: String = ""
     @Published var isValidating = false
     @Published var validationMessage: String?
@@ -21,15 +27,20 @@ class LicenseViewModel: ObservableObject {
     private let licenseManager = LicenseManager.shared
 
     init() {
+        if Self.bypassLicenseForTesting {
+            licenseState = .licensed
+            return
+        }
         loadLicenseState()
     }
 
-    func startTrial() {
-        // Only set trial start date if it hasn't been set before
+    func startTrial(postNotification: Bool = false) {
         if licenseManager.trialStartDate == nil {
             licenseManager.trialStartDate = Date()
             licenseState = .trial(daysRemaining: trialPeriodDays)
-            NotificationCenter.default.post(name: .licenseStatusChanged, object: nil)
+            if postNotification {
+                NotificationCenter.default.post(name: .licenseStatusChanged, object: nil)
+            }
         }
     }
 
@@ -72,6 +83,7 @@ class LicenseViewModel: ObservableObject {
     }
     
     var canUseApp: Bool {
+        if Self.bypassLicenseForTesting { return true }
         switch licenseState {
         case .licensed, .trial:
             return true
