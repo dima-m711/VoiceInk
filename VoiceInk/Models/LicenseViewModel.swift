@@ -74,7 +74,7 @@ class LicenseViewModel: ObservableObject {
             startTrial()
         }
     }
-
+    
     var canUseApp: Bool {
         switch licenseState {
         case .licensed, .trial:
@@ -83,31 +83,31 @@ class LicenseViewModel: ObservableObject {
             return false
         }
     }
-
+    
     func openPurchaseLink() {
         if let url = URL(string: "https://tryvoiceink.com/buy") {
             NSWorkspace.shared.open(url)
         }
     }
-
+    
     func validateLicense() async {
         guard !licenseKey.isEmpty else {
             validationMessage = "Please enter a license key"
             return
         }
-
+        
         isValidating = true
-
+        
         do {
             // First, check if the license is valid and if it requires activation
             let licenseCheck = try await polarService.checkLicenseRequiresActivation(licenseKey)
-
+            
             if !licenseCheck.isValid {
                 validationMessage = "Invalid license key"
                 isValidating = false
                 return
             }
-
+            
             // Store the license key
             licenseManager.licenseKey = licenseKey
 
@@ -149,12 +149,12 @@ class LicenseViewModel: ObservableObject {
                 isValidating = false
                 return
             }
-
+            
             // Update the license state for activated license
             licenseState = .licensed
             validationMessage = "License activated successfully!"
             NotificationCenter.default.post(name: .licenseStatusChanged, object: nil)
-
+            
         } catch LicenseError.activationLimitReached(let details) {
             validationMessage = "Activation limit reached: \(details)"
         } catch LicenseError.activationNotRequired {
@@ -171,10 +171,10 @@ class LicenseViewModel: ObservableObject {
         } catch {
             validationMessage = error.localizedDescription
         }
-
+        
         isValidating = false
     }
-
+    
     func removeLicense() {
         // Remove all license data from Keychain
         licenseManager.removeAll()
