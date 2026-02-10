@@ -9,13 +9,7 @@ class LicenseViewModel: ObservableObject {
         case licensed
     }
 
-    #if DEBUG
-    private static let bypassLicenseForTesting = true
-    #else
-    private static let bypassLicenseForTesting = false
-    #endif
-
-    @Published private(set) var licenseState: LicenseState = .trial(daysRemaining: 7)
+    @Published private(set) var licenseState: LicenseState = .trial(daysRemaining: 7)  // Default to trial
     @Published var licenseKey: String = ""
     @Published var isValidating = false
     @Published var validationMessage: String?
@@ -34,13 +28,12 @@ class LicenseViewModel: ObservableObject {
         #endif
     }
 
-    func startTrial(postNotification: Bool = false) {
+    func startTrial() {
+        // Only set trial start date if it hasn't been set before
         if licenseManager.trialStartDate == nil {
             licenseManager.trialStartDate = Date()
             licenseState = .trial(daysRemaining: trialPeriodDays)
-            if postNotification {
-                NotificationCenter.default.post(name: .licenseStatusChanged, object: nil)
-            }
+            NotificationCenter.default.post(name: .licenseStatusChanged, object: nil)
         }
     }
 
@@ -81,9 +74,8 @@ class LicenseViewModel: ObservableObject {
             startTrial()
         }
     }
-    
+
     var canUseApp: Bool {
-        if Self.bypassLicenseForTesting { return true }
         switch licenseState {
         case .licensed, .trial:
             return true
@@ -91,31 +83,31 @@ class LicenseViewModel: ObservableObject {
             return false
         }
     }
-    
+
     func openPurchaseLink() {
         if let url = URL(string: "https://tryvoiceink.com/buy") {
             NSWorkspace.shared.open(url)
         }
     }
-    
+
     func validateLicense() async {
         guard !licenseKey.isEmpty else {
             validationMessage = "Please enter a license key"
             return
         }
-        
+
         isValidating = true
-        
+
         do {
             // First, check if the license is valid and if it requires activation
             let licenseCheck = try await polarService.checkLicenseRequiresActivation(licenseKey)
-            
+
             if !licenseCheck.isValid {
                 validationMessage = "Invalid license key"
                 isValidating = false
                 return
             }
-            
+
             // Store the license key
             licenseManager.licenseKey = licenseKey
 
@@ -157,12 +149,12 @@ class LicenseViewModel: ObservableObject {
                 isValidating = false
                 return
             }
-            
+
             // Update the license state for activated license
             licenseState = .licensed
             validationMessage = "License activated successfully!"
             NotificationCenter.default.post(name: .licenseStatusChanged, object: nil)
-            
+
         } catch LicenseError.activationLimitReached(let details) {
             validationMessage = "Activation limit reached: \(details)"
         } catch LicenseError.activationNotRequired {
@@ -179,10 +171,10 @@ class LicenseViewModel: ObservableObject {
         } catch {
             validationMessage = error.localizedDescription
         }
-        
+
         isValidating = false
     }
-    
+
     func removeLicense() {
         // Remove all license data from Keychain
         licenseManager.removeAll()

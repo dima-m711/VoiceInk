@@ -22,7 +22,7 @@ final class KeychainService {
 
     /// Saves a string value to Keychain.
     @discardableResult
-    func save(_ value: String, forKey key: String, syncable: Bool = false) -> Bool {
+    func save(_ value: String, forKey key: String, syncable: Bool = true) -> Bool {
         guard let data = value.data(using: .utf8) else {
             logger.error("Failed to convert value to data for key: \(key)")
             return false
@@ -56,7 +56,7 @@ final class KeychainService {
     }
 
     /// Retrieves a string value from Keychain.
-    func getString(forKey key: String, syncable: Bool = false) -> String? {
+    func getString(forKey key: String, syncable: Bool = true) -> String? {
         guard let data = getData(forKey: key, syncable: syncable) else {
             return nil
         }
