@@ -220,6 +220,8 @@ struct VoiceInkApp: App {
                             return
                         }
 
+                        _ = KeyboardInputSourceMonitor.shared
+
                         // Migrate dictionary data from UserDefaults to SwiftData (one-time operation)
                         DictionaryMigrationService.shared.migrateIfNeeded(context: container.mainContext)
 
