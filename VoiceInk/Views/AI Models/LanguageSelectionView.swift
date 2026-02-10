@@ -13,7 +13,7 @@ struct LanguageSelectionView: View {
     var displayMode: LanguageDisplayMode = .full
     @ObservedObject var whisperPrompt: WhisperPrompt
     @StateObject private var keyboardMonitor = KeyboardInputSourceMonitor.shared
-    @State private var expandedSections: Set<ExpandableSection> = []
+    @State private var isAutoSwitchKeyboardExpanded = false
 
     private func updateLanguage(_ language: String) {
         // Update UI state - the UserDefaults updating is now automatic with @AppStorage
@@ -159,12 +159,11 @@ struct LanguageSelectionView: View {
     }
 
     private var autoSwitchKeyboardSection: some View {
-        ExpandableToggleSection(
-            section: .autoSwitchKeyboard,
-            title: "Auto-switch with keyboard",
-            helpText: "Automatically change the transcription language when you switch your system keyboard input source",
+        ExpandableSettingsRow(
+            isExpanded: $isAutoSwitchKeyboardExpanded,
             isEnabled: $autoSwitchEnabled,
-            expandedSections: $expandedSections
+            label: "Auto-switch with keyboard",
+            infoMessage: "Automatically change the transcription language when you switch your system keyboard input source"
         ) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
