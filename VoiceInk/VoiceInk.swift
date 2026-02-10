@@ -11,7 +11,7 @@ struct VoiceInkApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     let container: ModelContainer
     let containerInitializationFailed: Bool
-
+    
     @StateObject private var whisperState: WhisperState
     @StateObject private var hotkeyManager: HotkeyManager
     @StateObject private var updaterViewModel: UpdaterViewModel
@@ -31,7 +31,7 @@ struct VoiceInkApp: App {
 
     // Model prewarm service for optimizing model on wake from sleep
     @StateObject private var prewarmService: ModelPrewarmService
-
+    
     init() {
         AppDefaults.registerDefaults()
 
@@ -47,7 +47,7 @@ struct VoiceInkApp: App {
             WordReplacement.self
         ])
         var initializationFailed = false
-
+        
         // Attempt 1: Try persistent storage
         if let persistentContainer = Self.createPersistentContainer(schema: schema, logger: logger) {
             container = persistentContainer
@@ -79,22 +79,22 @@ struct VoiceInkApp: App {
                 preconditionFailure("Unable to create ModelContainer. SwiftData is unavailable.")
             }()
         }
-
+        
         containerInitializationFailed = initializationFailed
-
+        
         // Initialize services with proper sharing of instances
         let aiService = AIService()
         _aiService = StateObject(wrappedValue: aiService)
-
+        
         let updaterViewModel = UpdaterViewModel()
         _updaterViewModel = StateObject(wrappedValue: updaterViewModel)
-
+        
         let enhancementService = AIEnhancementService(aiService: aiService, modelContext: container.mainContext)
         _enhancementService = StateObject(wrappedValue: enhancementService)
-
+        
         let whisperState = WhisperState(modelContext: container.mainContext, enhancementService: enhancementService)
         _whisperState = StateObject(wrappedValue: whisperState)
-
+        
         let hotkeyManager = HotkeyManager(whisperState: whisperState)
         _hotkeyManager = StateObject(wrappedValue: hotkeyManager)
 
@@ -107,7 +107,7 @@ struct VoiceInkApp: App {
         activeWindowService.configureWhisperState(whisperState)
         _activeWindowService = StateObject(wrappedValue: activeWindowService)
 
-
+        
         let prewarmService = ModelPrewarmService(whisperState: whisperState, modelContext: container.mainContext)
         _prewarmService = StateObject(wrappedValue: prewarmService)
 
@@ -120,9 +120,9 @@ struct VoiceInkApp: App {
 
         AppShortcuts.updateAppShortcutParameters()
     }
-
+    
     // MARK: - Container Creation Helpers
-
+    
     private static func createPersistentContainer(schema: Schema, logger: Logger) -> ModelContainer? {
         do {
             // Create app-specific Application Support directory URL
@@ -169,7 +169,7 @@ struct VoiceInkApp: App {
             return nil
         }
     }
-
+    
     private static func createInMemoryContainer(schema: Schema, logger: Logger) -> ModelContainer? {
         do {
             // Transcript configuration
@@ -194,7 +194,7 @@ struct VoiceInkApp: App {
             return nil
         }
     }
-
+    
     var body: some Scene {
         WindowGroup {
             if hasCompletedOnboarding {
@@ -229,15 +229,15 @@ struct VoiceInkApp: App {
                         if enableAnnouncements {
                             AnnouncementsService.shared.start()
                         }
-
+                        
                         // Start the transcription auto-cleanup service (handles immediate and scheduled transcript deletion)
                         transcriptionAutoCleanupService.startMonitoring(modelContext: container.mainContext)
-
+                        
                         // Start the automatic audio cleanup process only if transcript cleanup is not enabled
                         if !UserDefaults.standard.bool(forKey: "IsTranscriptionCleanupEnabled") {
                             audioCleanupManager.startAutomaticCleanup(modelContext: container.mainContext)
                         }
-
+                        
                         // Process any pending open-file request now that the main ContentView is ready.
                         if let pendingURL = appDelegate.pendingOpenFileURL {
                             NotificationCenter.default.post(name: .navigateToDestination, object: nil, userInfo: ["destination": "Transcribe Audio"])
@@ -253,10 +253,10 @@ struct VoiceInkApp: App {
                     .onDisappear {
                         AnnouncementsService.shared.stop()
                         whisperState.unloadModel()
-
+                        
                         // Stop the transcription auto-cleanup service
                         transcriptionAutoCleanupService.stopMonitoring()
-
+                        
                         // Stop the automatic audio cleanup process
                         audioCleanupManager.stopAutomaticCleanup()
                     }
@@ -284,7 +284,7 @@ struct VoiceInkApp: App {
                 CheckForUpdatesView(updaterViewModel: updaterViewModel)
             }
         }
-
+        
         MenuBarExtra(isInserted: $showMenuBarIcon) {
             MenuBarView()
                 .environmentObject(whisperState)
@@ -304,7 +304,7 @@ struct VoiceInkApp: App {
             Image(nsImage: image)
         }
         .menuBarExtraStyle(.menu)
-
+        
         #if DEBUG
         WindowGroup("Debug") {
             Button("Toggle Menu Bar Only") {
@@ -317,31 +317,31 @@ struct VoiceInkApp: App {
 
 class UpdaterViewModel: ObservableObject {
     @AppStorage("autoUpdateCheck") private var autoUpdateCheck = true
-
+    
     private let updaterController: SPUStandardUpdaterController
-
+    
     @Published var canCheckForUpdates = false
-
+    
     init() {
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
-
+        
         // Enable automatic update checking
         updaterController.updater.automaticallyChecksForUpdates = autoUpdateCheck
         updaterController.updater.updateCheckInterval = 24 * 60 * 60
-
+        
         updaterController.updater.publisher(for: \.canCheckForUpdates)
             .assign(to: &$canCheckForUpdates)
     }
-
+    
     func toggleAutoUpdates(_ value: Bool) {
         updaterController.updater.automaticallyChecksForUpdates = value
     }
-
+    
     func checkForUpdates() {
         // This is for manual checks - will show UI
         updaterController.checkForUpdates(nil)
     }
-
+    
     func silentlyCheckForUpdates() {
         // This checks for updates in the background without showing UI unless an update is found
         updaterController.updater.checkForUpdatesInBackground()
@@ -350,7 +350,7 @@ class UpdaterViewModel: ObservableObject {
 
 struct CheckForUpdatesView: View {
     @ObservedObject var updaterViewModel: UpdaterViewModel
-
+    
     var body: some View {
         Button("Check for Updates…", action: updaterViewModel.checkForUpdates)
             .disabled(!updaterViewModel.canCheckForUpdates)
@@ -359,7 +359,7 @@ struct CheckForUpdatesView: View {
 
 struct WindowAccessor: NSViewRepresentable {
     let callback: (NSWindow) -> Void
-
+    
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         DispatchQueue.main.async {
@@ -369,6 +369,6 @@ struct WindowAccessor: NSViewRepresentable {
         }
         return view
     }
-
+    
     func updateNSView(_ nsView: NSView, context: Context) {}
 }
