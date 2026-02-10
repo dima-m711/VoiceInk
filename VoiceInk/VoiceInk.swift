@@ -147,6 +147,11 @@ struct VoiceInkApp: App {
 
             // Dictionary configuration (local-only)
             let dictionarySchema = Schema([VocabularyWord.self, WordReplacement.self])
+            #if LOCAL_BUILD
+            let dictionaryCloudKit: ModelConfiguration.CloudKitDatabase = .none
+            #else
+            let dictionaryCloudKit: ModelConfiguration.CloudKitDatabase = .private("iCloud.com.prakashjoshipax.VoiceInk")
+            #endif
             let dictionaryConfig = ModelConfiguration(
                 "dictionary",
                 schema: dictionarySchema,

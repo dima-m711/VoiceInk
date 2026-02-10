@@ -27,11 +27,11 @@ class LicenseViewModel: ObservableObject {
     private let licenseManager = LicenseManager.shared
 
     init() {
-        if Self.bypassLicenseForTesting {
-            licenseState = .licensed
-            return
-        }
+        #if LOCAL_BUILD
+        licenseState = .licensed
+        #else
         loadLicenseState()
+        #endif
     }
 
     func startTrial(postNotification: Bool = false) {
